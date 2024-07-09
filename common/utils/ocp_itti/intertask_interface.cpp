@@ -131,8 +131,11 @@ extern "C" {
     int message_id = message->ittiMsgHeader.messageId;
     size_t s=t->message_queue.size();
 
-    if ( s > t->admin.queue_size )
+    if ( s > t->admin.queue_size ){
+      if(destination_task_id == TASK_GTPV1_U)
+        printf("queue1: %ld\n", s);
       LOG_E(TMR,"Queue for %s task contains %ld messages\n", itti_get_task_name(destination_task_id), s );
+    }
 
     if ( s > 50 )
       LOG_I(ITTI,"Queue for %s task size: %ld (last message %s)\n",itti_get_task_name(destination_task_id), s+1,ITTI_MSG_NAME(message));
@@ -150,8 +153,11 @@ extern "C" {
     int ret=itti_send_msg_to_task_locked(destination_task_id, destinationInstance, message);
 
     while ( t->message_queue.size()>0 && t->admin.func != NULL ) {
-      if (t->message_queue.size()>1)
+      if (t->message_queue.size()>1){
+        if(destination_task_id == TASK_GTPV1_U)
+          printf("queue2: %ld\n", t->message_queue.size());
         LOG_W(ITTI,"queue in no thread mode is %ld\n", t->message_queue.size());
+      }
 
       pthread_mutex_unlock (&t->queue_cond_lock);
       t->admin.func(NULL);
@@ -269,7 +275,8 @@ extern "C" {
     pthread_mutex_lock(&tasks[task_id]->queue_cond_lock);
     return itti_get_events_locked(task_id, events, nb_evts);
   }
-
+  int a = 0;
+  FILE *file = fopen("queue.csv", "w");
   void itti_receive_msg(task_id_t task_id, MessageDef **received_msg) {
     // Reception of one message, blocking caller
     task_list_t *t=tasks[task_id];
@@ -284,7 +291,11 @@ extern "C" {
       }
       while (t->message_queue.empty() && t->nb_fd_epoll == 1);
     }
-
+    size_t s = t->message_queue.size();
+    if(task_id==36 && s != 0){
+      a++;
+      fprintf(file, "%d,%zu\n", a, s);
+    }
     // Legacy design: we return even if we have no message
     // in this case, *received_msg is NULL
     if (t->message_queue.empty()) {
@@ -295,6 +306,10 @@ extern "C" {
       t->message_queue.pop_back();
       LOG_D(ITTI,"task %s received a message\n",t->admin.name);
     }
+    // if (task_id == TASK_GTPV1_U){
+    //   int msg_count = t->message_queue.size();
+    //   printf("queue number: %d\n", msg_count);
+    // }
 
     pthread_mutex_unlock (&t->queue_cond_lock);
   }
