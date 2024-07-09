@@ -729,257 +729,257 @@ static void gtpv1uSend(instance_t instance, gtpv1u_tunnel_data_req_t *req, bool 
       else if ((buffer[36] == 0x08 && buffer[37] == 0x06 && buffer[65] != 0x01)){ //ARP Request & reply from IoT Device but not to IND Box
         
         ////////With IND-Box////////
-        unsigned char packet[1024];
-        memset(packet, 0, 1024);
+        // unsigned char packet[1024];
+        // memset(packet, 0, 1024);
 
-        // Ethernet header
-        struct ether_header *eth_header = (struct ether_header *)packet;
-        memcpy(eth_header->ether_dhost, DST_MAC, ETH_ALEN);
-        memcpy(eth_header->ether_shost, SRC_MAC, ETH_ALEN);
-        eth_header->ether_type = htons(ETH_P_IP);
+        // // Ethernet header
+        // struct ether_header *eth_header = (struct ether_header *)packet;
+        // memcpy(eth_header->ether_dhost, DST_MAC, ETH_ALEN);
+        // memcpy(eth_header->ether_shost, SRC_MAC, ETH_ALEN);
+        // eth_header->ether_type = htons(ETH_P_IP);
 
-        memcpy(packet + sizeof(struct ether_header), buffer, length);
+        // memcpy(packet + sizeof(struct ether_header), buffer, length);
 
-        int packet_len = sizeof(struct ether_header) + length;
+        // int packet_len = sizeof(struct ether_header) + length;
 
-        if (sendto(rawsockfd, packet, packet_len, 0, (struct sockaddr*)&sll, sizeof(sll)) == -1) {
-          perror("sendto");
-          close(rawsockfd);
-          exit(EXIT_FAILURE);
-        }
+        // if (sendto(rawsockfd, packet, packet_len, 0, (struct sockaddr*)&sll, sizeof(sll)) == -1) {
+        //   perror("sendto");
+        //   close(rawsockfd);
+        //   exit(EXIT_FAILURE);
+        // }
         ////////With IND-Box////////
 
         ////////Without IND-Box////////
-        // unsigned char *packet = buffer;
-        // struct iphdr *ip_hdr_gre = (struct iphdr *)(packet);
-        // struct ether_arp * arp_hdr = (struct ether_arp *)(packet + sizeof(struct iphdr) + sizeof(struct gre_header) + sizeof(struct ether_header));
-        // struct ether_header * eth_hdr = (struct ether_header *)(packet + sizeof(struct iphdr) + sizeof(struct gre_header));
-        // ip_hdr_gre->check = 0;
-        // if (arp_hdr->arp_op == htons(1)){
-        //   device_table_insert(eth_hdr->ether_shost, ip_hdr_gre->saddr, ip_hdr_gre->saddr);
-        //   uint32_t value = 0;
-        //   memcpy(&value, arp_hdr->arp_spa, sizeof(value));
-        //   device_arp_table_insert(eth_hdr->ether_shost, value, time(NULL));
-        //   struct device_arp_table_entry *entry2;
+        unsigned char *packet = buffer;
+        struct iphdr *ip_hdr_gre = (struct iphdr *)(packet);
+        struct ether_arp * arp_hdr = (struct ether_arp *)(packet + sizeof(struct iphdr) + sizeof(struct gre_header) + sizeof(struct ether_header));
+        struct ether_header * eth_hdr = (struct ether_header *)(packet + sizeof(struct iphdr) + sizeof(struct gre_header));
+        ip_hdr_gre->check = 0;
+        if (arp_hdr->arp_op == htons(1)){
+          device_table_insert(eth_hdr->ether_shost, ip_hdr_gre->saddr, ip_hdr_gre->saddr);
+          uint32_t value = 0;
+          memcpy(&value, arp_hdr->arp_spa, sizeof(value));
+          device_arp_table_insert(eth_hdr->ether_shost, value, time(NULL));
+          struct device_arp_table_entry *entry2;
           
-        //   uint32_t arphash = *((uint32_t *)(arp_hdr->arp_tpa)) % 1000000;
-        //   entry2 = device_arp_table_get_entry_by_ul_ip(arphash);
-        //   if (entry2 && ((time(NULL) - entry2->timestamp)) < ARP_ENTRY_TIMEOUT){
-        //     printf("arp found\n");
-        //     memcpy(eth_hdr->ether_dhost, eth_hdr->ether_shost, ETH_ALEN);
-        //     memcpy(eth_hdr->ether_shost, entry2->device_mac_addr, ETH_ALEN);
-        //     //uint32_t device_ip;
-        //     //inet_pton(AF_INET, arp_hdr->arp_spa, &device_ip);
+          uint32_t arphash = *((uint32_t *)(arp_hdr->arp_tpa)) % 1000000;
+          entry2 = device_arp_table_get_entry_by_ul_ip(arphash);
+          if (entry2 && ((time(NULL) - entry2->timestamp)) < ARP_ENTRY_TIMEOUT){
+            printf("arp found\n");
+            memcpy(eth_hdr->ether_dhost, eth_hdr->ether_shost, ETH_ALEN);
+            memcpy(eth_hdr->ether_shost, entry2->device_mac_addr, ETH_ALEN);
+            //uint32_t device_ip;
+            //inet_pton(AF_INET, arp_hdr->arp_spa, &device_ip);
             
-        //     arp_hdr->arp_op = htons(2);
-        //     //(u_char *)ip = arp_hdr->arp_tpa;
-        //     memcpy(arp_hdr->arp_tha, arp_hdr->arp_sha, 6);
-        //     memcpy(arp_hdr->arp_tpa, arp_hdr->arp_spa, 4);
-        //     memcpy(arp_hdr->arp_sha, entry2->device_mac_addr, 6);
-        //     memcpy(arp_hdr->arp_spa, (u_char *)&entry2->device_ip, 4);
-        //     ip_hdr_gre->daddr = ip_hdr_gre->saddr;
-        //     ip_hdr_gre->saddr = inet_addr(SRC_IP);;
-        //     ip_hdr_gre->check = checksum5((unsigned short *)ip_hdr_gre, sizeof(struct iphdr) / 2);
-        //     uint32_t temp3 = ip_hdr_gre->daddr % 1000000;
-        //     length += 3;
+            arp_hdr->arp_op = htons(2);
+            //(u_char *)ip = arp_hdr->arp_tpa;
+            memcpy(arp_hdr->arp_tha, arp_hdr->arp_sha, 6);
+            memcpy(arp_hdr->arp_tpa, arp_hdr->arp_spa, 4);
+            memcpy(arp_hdr->arp_sha, entry2->device_mac_addr, 6);
+            memcpy(arp_hdr->arp_spa, (u_char *)&entry2->device_ip, 4);
+            ip_hdr_gre->daddr = ip_hdr_gre->saddr;
+            ip_hdr_gre->saddr = inet_addr(SRC_IP);;
+            ip_hdr_gre->check = checksum5((unsigned short *)ip_hdr_gre, sizeof(struct iphdr) / 2);
+            uint32_t temp3 = ip_hdr_gre->daddr % 1000000;
+            length += 3;
 
-        //     auto instChk=globGtp.instances.find(compatInst(compatInst(temp_instance)));
-        //     gtpEndPoint * inst=&instChk->second;
-        //     auto ptrUe=inst->ue2te_mapping.find(UE_CPE[temp3][0]);                                                                    
-        //     auto ptr2=ptrUe->second.bearers.find(1); //bearer_id
-        //     uint8_t pdcp[3] = {0x80, 0x00, 0x00};
-        //     pdcp[2] += ptr2->second.seqNum;
-        //     if (pdcp[2] < ptr2->second.seqNum) {
-        //       pdcp[1]++;
-        //     }
-        //     size_t prepend_length = sizeof(pdcp);
-        //     memmove(packet + prepend_length, packet, length);
-        //     memcpy(packet, pdcp, prepend_length);
+            auto instChk=globGtp.instances.find(compatInst(compatInst(temp_instance)));
+            gtpEndPoint * inst=&instChk->second;
+            auto ptrUe=inst->ue2te_mapping.find(UE_CPE[temp3][0]);                                                                    
+            auto ptr2=ptrUe->second.bearers.find(1); //bearer_id
+            uint8_t pdcp[3] = {0x80, 0x00, 0x00};
+            pdcp[2] += ptr2->second.seqNum;
+            if (pdcp[2] < ptr2->second.seqNum) {
+              pdcp[1]++;
+            }
+            size_t prepend_length = sizeof(pdcp);
+            memmove(packet + prepend_length, packet, length);
+            memcpy(packet, pdcp, prepend_length);
 
-        //     ptr2->second.seqNum++;
-        //     ptr2->second.npduNum++;
-        //           //printf("M2M SN downlink: %hu\n", ptr2->second.seqNum);
-        //     tmp=ptr2->second;
-        //     gtpv1uCreateAndSendMsg(compatInst(temp_instance),
-        //                              tmp.outgoing_ip_addr,
-        //                              tmp.outgoing_port,
-        //                              GTP_GPDU,
-        //                              tmp.teid_outgoing,
-        //                              packet,
-        //                              length, 
-        //                              seqNumFlag,
-        //                              npduNumFlag, 
-        //                              0, 
-        //                              0, 
-        //                              NO_MORE_EXT_HDRS, 
-        //                              NULL, 
-        //                              0);
-        //   }
-        //   else{
-        //     printf("arp not found\n");
-        //     size_t pack_len = length;
-        //     if (buffer[28] == 0xff && buffer[29] == 0xff){ //ARP broadcast
-        //       struct iphdr *ip_hdr_gre = (struct iphdr *)(packet);
-        //       struct ether_header * eth_hdr = (struct ether_header *)(packet + sizeof(struct iphdr) + sizeof(struct gre_header));
-        //       uint32_t ip_addr = ip_hdr_gre->saddr;
-        //       device_table_insert(eth_hdr->ether_shost, ip_hdr_gre->saddr, ip_hdr_gre->saddr);
-        //       uint32_t value = 0;
-        //       memcpy(&value, arp_hdr->arp_spa, sizeof(value));
-        //       device_arp_table_insert(eth_hdr->ether_shost, value, time(NULL));
-        //       //uint32_t device_ip;
-        //     //inet_pton(AF_INET, arp_hdr->arp_spa, &device_ip);
-        //       // uint32_t value = 0;
+            ptr2->second.seqNum++;
+            ptr2->second.npduNum++;
+                  //printf("M2M SN downlink: %hu\n", ptr2->second.seqNum);
+            tmp=ptr2->second;
+            gtpv1uCreateAndSendMsg(compatInst(temp_instance),
+                                     tmp.outgoing_ip_addr,
+                                     tmp.outgoing_port,
+                                     GTP_GPDU,
+                                     tmp.teid_outgoing,
+                                     packet,
+                                     length, 
+                                     seqNumFlag,
+                                     npduNumFlag, 
+                                     0, 
+                                     0, 
+                                     NO_MORE_EXT_HDRS, 
+                                     NULL, 
+                                     0);
+          }
+          else{
+            printf("arp not found\n");
+            size_t pack_len = length;
+            if (buffer[28] == 0xff && buffer[29] == 0xff){ //ARP broadcast
+              struct iphdr *ip_hdr_gre = (struct iphdr *)(packet);
+              struct ether_header * eth_hdr = (struct ether_header *)(packet + sizeof(struct iphdr) + sizeof(struct gre_header));
+              uint32_t ip_addr = ip_hdr_gre->saddr;
+              device_table_insert(eth_hdr->ether_shost, ip_hdr_gre->saddr, ip_hdr_gre->saddr);
+              uint32_t value = 0;
+              memcpy(&value, arp_hdr->arp_spa, sizeof(value));
+              device_arp_table_insert(eth_hdr->ether_shost, value, time(NULL));
+              //uint32_t device_ip;
+            //inet_pton(AF_INET, arp_hdr->arp_spa, &device_ip);
+              // uint32_t value = 0;
 
-        //       // memcpy(&value, arp_hdr->arp_spa, sizeof(value));
-        //       // device_arp_table_insert(eth_hdr->ether_shost, value);
-        //       int count = 1;
-        //       for (int i = 0; i < 1000; i++){ //limitation for 5G CPE
-        //         unsigned char *packet = buffer;
-        //         uint8_t pdcp[3] = {0x80, 0x00, 0x00};
-        //         if (CPE_IP[i] != 0){
-        //           //printf("src CPE_IP: %u\n", ip_addr);
-        //           if (CPE_IP[i] != ip_addr){
-        //             //length = pack_len;
-        //             //dump_data(packet, length);
-        //             if (count == 1)
-        //               count++;
-        //             else{
-        //               packet += sizeof(pdcp);
-        //               length -= 3;
-        //             }
-        //             //dump_data(packet, length);
-        //             struct iphdr *ip_hdr_gre = (struct iphdr *)(packet);
-        //             //printf("CPE_IP: %u\n", CPE_IP[i]);
-        //             ip_hdr_gre->check = 0;
-        //             ip_hdr_gre->saddr = inet_addr(SRC_IP);
-        //             ip_hdr_gre->daddr = CPE_IP[i];
-        //             ip_hdr_gre->check = checksum5((unsigned short *)ip_hdr_gre, sizeof(struct iphdr) / 2);
-        //             //unsigned char *packet = buffer;
-        //             uint32_t temp = CPE_IP[i] % 1000000;
-        //             auto instChk=globGtp.instances.find(compatInst(compatInst(temp_instance)));
-        //             gtpEndPoint * inst=&instChk->second;
-        //             auto ptrUe=inst->ue2te_mapping.find(UE_CPE[temp][0]);                                                                    
-        //             auto ptr2=ptrUe->second.bearers.find(1); //bearer_id
-        //             pdcp[2] += ptr2->second.seqNum;
-        //             if (pdcp[2] < ptr2->second.seqNum) {
-        //               pdcp[1]++;
-        //             }
-        //             length += 3;
-        //             size_t prepend_length = sizeof(pdcp);
-        //             memmove(packet + prepend_length, packet, length);
-        //             memcpy(packet, pdcp, prepend_length);
-        //             //dump_data(packet, length);
+              // memcpy(&value, arp_hdr->arp_spa, sizeof(value));
+              // device_arp_table_insert(eth_hdr->ether_shost, value);
+              int count = 1;
+              for (int i = 0; i < 1000; i++){ //limitation for 5G CPE
+                unsigned char *packet = buffer;
+                uint8_t pdcp[3] = {0x80, 0x00, 0x00};
+                if (CPE_IP[i] != 0){
+                  //printf("src CPE_IP: %u\n", ip_addr);
+                  if (CPE_IP[i] != ip_addr){
+                    //length = pack_len;
+                    //dump_data(packet, length);
+                    if (count == 1)
+                      count++;
+                    else{
+                      packet += sizeof(pdcp);
+                      length -= 3;
+                    }
+                    //dump_data(packet, length);
+                    struct iphdr *ip_hdr_gre = (struct iphdr *)(packet);
+                    //printf("CPE_IP: %u\n", CPE_IP[i]);
+                    ip_hdr_gre->check = 0;
+                    ip_hdr_gre->saddr = inet_addr(SRC_IP);
+                    ip_hdr_gre->daddr = CPE_IP[i];
+                    ip_hdr_gre->check = checksum5((unsigned short *)ip_hdr_gre, sizeof(struct iphdr) / 2);
+                    //unsigned char *packet = buffer;
+                    uint32_t temp = CPE_IP[i] % 1000000;
+                    auto instChk=globGtp.instances.find(compatInst(compatInst(temp_instance)));
+                    gtpEndPoint * inst=&instChk->second;
+                    auto ptrUe=inst->ue2te_mapping.find(UE_CPE[temp][0]);                                                                    
+                    auto ptr2=ptrUe->second.bearers.find(1); //bearer_id
+                    pdcp[2] += ptr2->second.seqNum;
+                    if (pdcp[2] < ptr2->second.seqNum) {
+                      pdcp[1]++;
+                    }
+                    length += 3;
+                    size_t prepend_length = sizeof(pdcp);
+                    memmove(packet + prepend_length, packet, length);
+                    memcpy(packet, pdcp, prepend_length);
+                    //dump_data(packet, length);
 
-        //             ptr2->second.seqNum++;
-        //             ptr2->second.npduNum++;
-        //             tmp=ptr2->second;
-        //             gtpv1uCreateAndSendMsg(compatInst(temp_instance),
-        //                                      tmp.outgoing_ip_addr,
-        //                                      tmp.outgoing_port,
-        //                                      GTP_GPDU,
-        //                                      tmp.teid_outgoing,
-        //                                      packet,
-        //                                      length, 
-        //                                      seqNumFlag,
-        //                                      npduNumFlag, 
-        //                                      0, 
-        //                                      0, 
-        //                                      NO_MORE_EXT_HDRS, 
-        //                                      NULL, 
-        //                                      0);
+                    ptr2->second.seqNum++;
+                    ptr2->second.npduNum++;
+                    tmp=ptr2->second;
+                    gtpv1uCreateAndSendMsg(compatInst(temp_instance),
+                                             tmp.outgoing_ip_addr,
+                                             tmp.outgoing_port,
+                                             GTP_GPDU,
+                                             tmp.teid_outgoing,
+                                             packet,
+                                             length, 
+                                             seqNumFlag,
+                                             npduNumFlag, 
+                                             0, 
+                                             0, 
+                                             NO_MORE_EXT_HDRS, 
+                                             NULL, 
+                                             0);
 
-        //           }
-        //         }
-        //       }
-        //     }
-        //   }
-        // }
-        // else{
-        //   printf("arp reply to\n");
-        //   struct device_table_entry *entry;
+                  }
+                }
+              }
+            }
+          }
+        }
+        else{
+          printf("arp reply to\n");
+          struct device_table_entry *entry;
           
-        //   struct iphdr *ip_hdr_gre = (struct iphdr *)(packet);
-        //   // uint32_t ip = ip_hdr_gre->saddr;
-        //   ip_hdr_gre->check = 0;
-        //   //struct iphdr *ip_hdr = (struct iphdr *)(packet + sizeof(struct iphdr) + sizeof(struct gre_header) + sizeof(struct ether_header));
-        //   //struct ether_header *eth_hdr = (struct ether_header *)(packet + sizeof(struct iphdr) + sizeof(struct gre_header));
-        //   device_table_insert(eth_hdr->ether_shost, ip_hdr_gre->saddr, ip_hdr_gre->saddr);
-        //   //uint32_t device_ip;
-        //   //inet_pton(AF_INET, arp_hdr->arp_spa, &device_ip);
-        //   // uint32_t value = 0;
+          struct iphdr *ip_hdr_gre = (struct iphdr *)(packet);
+          // uint32_t ip = ip_hdr_gre->saddr;
+          ip_hdr_gre->check = 0;
+          //struct iphdr *ip_hdr = (struct iphdr *)(packet + sizeof(struct iphdr) + sizeof(struct gre_header) + sizeof(struct ether_header));
+          //struct ether_header *eth_hdr = (struct ether_header *)(packet + sizeof(struct iphdr) + sizeof(struct gre_header));
+          device_table_insert(eth_hdr->ether_shost, ip_hdr_gre->saddr, ip_hdr_gre->saddr);
+          //uint32_t device_ip;
+          //inet_pton(AF_INET, arp_hdr->arp_spa, &device_ip);
+          // uint32_t value = 0;
 
-        //   // memcpy(&value, arp_hdr->arp_spa, sizeof(value));
-        //   // device_arp_table_insert(eth_hdr->ether_shost, value);
-        //   uint32_t hash = hash_mac(eth_hdr->ether_dhost);
-        //   //packet += sizeof(struct ether_header);
-        //   //len -= sizeof(struct ether_header);
+          // memcpy(&value, arp_hdr->arp_spa, sizeof(value));
+          // device_arp_table_insert(eth_hdr->ether_shost, value);
+          uint32_t hash = hash_mac(eth_hdr->ether_dhost);
+          //packet += sizeof(struct ether_header);
+          //len -= sizeof(struct ether_header);
 
-        //   //uint32_t temp2 = ip_dst_addr % 1000000;
-        //   entry = device_table_get_entry_by_ul_mac(hash);
-        //   if (entry){//(entry->cpe_ip != ip){
-        //     // if (entry == 0)
-        //     //   printf("device info not found\n");
-        //     ip_hdr_gre->saddr = inet_addr(SRC_IP);;
-        //     ip_hdr_gre->daddr = entry->cpe_ip;
-        //     ip_hdr_gre->check = checksum5((unsigned short *)ip_hdr_gre, sizeof(struct iphdr) / 2);
-        //     uint32_t temp3 = entry->cpe_ip % 1000000;
-        //     length += 3;
-        //     // size_t prepend_length = sizeof(pdcp[temp3]);
-        //     // memmove(packet + prepend_length, packet, length);
-        //     // memcpy(packet, pdcp[temp3], prepend_length);
-        //     // pdcp[temp3][2]++;
-        //     // if (pdcp[temp3][2] == 0xff) {
-        //     //   pdcp[temp3][1]++;
-        //     // }
+          //uint32_t temp2 = ip_dst_addr % 1000000;
+          entry = device_table_get_entry_by_ul_mac(hash);
+          if (entry){//(entry->cpe_ip != ip){
+            // if (entry == 0)
+            //   printf("device info not found\n");
+            ip_hdr_gre->saddr = inet_addr(SRC_IP);;
+            ip_hdr_gre->daddr = entry->cpe_ip;
+            ip_hdr_gre->check = checksum5((unsigned short *)ip_hdr_gre, sizeof(struct iphdr) / 2);
+            uint32_t temp3 = entry->cpe_ip % 1000000;
+            length += 3;
+            // size_t prepend_length = sizeof(pdcp[temp3]);
+            // memmove(packet + prepend_length, packet, length);
+            // memcpy(packet, pdcp[temp3], prepend_length);
+            // pdcp[temp3][2]++;
+            // if (pdcp[temp3][2] == 0xff) {
+            //   pdcp[temp3][1]++;
+            // }
          
-        //     auto instChk=globGtp.instances.find(compatInst(compatInst(temp_instance)));
-        //     if (instChk == globGtp.instances.end()) {                        
-        //       LOG_E(GTPU,"try to get a gtp-u not existing output\n");     
-        //       pthread_mutex_unlock(&globGtp.gtp_lock);                                                         
-        //     }
-        //     else{
-        //       if (&instChk->second){
-        //         gtpEndPoint * inst=&instChk->second;
-        //         auto ptrUe=inst->ue2te_mapping.find(UE_CPE[temp3][0]);                                                                    
-        //         if ( ptrUe==inst->ue2te_mapping.end() ) {                          
-        //           pthread_mutex_unlock(&globGtp.gtp_lock);                                                                                
-        //         }
-        //         auto ptr2=ptrUe->second.bearers.find(1); //bearer_id
-        //         uint8_t pdcp[3] = {0x80, 0x00, 0x00};
-        //         pdcp[2] += ptr2->second.seqNum;
-        //         if (pdcp[2] < ptr2->second.seqNum) {
-        //           pdcp[1]++;
-        //         }
-        //         size_t prepend_length = sizeof(pdcp);
-        //         memmove(packet + prepend_length, packet, length);
-        //         memcpy(packet, pdcp, prepend_length);
+            auto instChk=globGtp.instances.find(compatInst(compatInst(temp_instance)));
+            if (instChk == globGtp.instances.end()) {                        
+              LOG_E(GTPU,"try to get a gtp-u not existing output\n");     
+              pthread_mutex_unlock(&globGtp.gtp_lock);                                                         
+            }
+            else{
+              if (&instChk->second){
+                gtpEndPoint * inst=&instChk->second;
+                auto ptrUe=inst->ue2te_mapping.find(UE_CPE[temp3][0]);                                                                    
+                if ( ptrUe==inst->ue2te_mapping.end() ) {                          
+                  pthread_mutex_unlock(&globGtp.gtp_lock);                                                                                
+                }
+                auto ptr2=ptrUe->second.bearers.find(1); //bearer_id
+                uint8_t pdcp[3] = {0x80, 0x00, 0x00};
+                pdcp[2] += ptr2->second.seqNum;
+                if (pdcp[2] < ptr2->second.seqNum) {
+                  pdcp[1]++;
+                }
+                size_t prepend_length = sizeof(pdcp);
+                memmove(packet + prepend_length, packet, length);
+                memcpy(packet, pdcp, prepend_length);
 
-        //         ptr2->second.seqNum++;
-        //         // pdcp[temp3][2]++;
-        //         // if (pdcp[temp3][2] == 0xff) {
-        //         //   pdcp[temp3][1]++;
-        //         // }
-        //         ptr2->second.npduNum++;
-        //         //printf("M2M SN downlink: %hu\n", ptr2->second.seqNum);
-        //         tmp=ptr2->second;
-        //         gtpv1uCreateAndSendMsg(compatInst(temp_instance),
-        //                            tmp.outgoing_ip_addr,
-        //                            tmp.outgoing_port,
-        //                            GTP_GPDU,
-        //                            tmp.teid_outgoing,
-        //                            packet,
-        //                            length,
-        //                            0,
-        //                            0,
-        //                            0,
-        //                            0,
-        //                            NO_MORE_EXT_HDRS, 
-        //                            NULL, 
-        //                            0);
-        //       }
-        //     }
-        //   }
-        // }
+                ptr2->second.seqNum++;
+                // pdcp[temp3][2]++;
+                // if (pdcp[temp3][2] == 0xff) {
+                //   pdcp[temp3][1]++;
+                // }
+                ptr2->second.npduNum++;
+                //printf("M2M SN downlink: %hu\n", ptr2->second.seqNum);
+                tmp=ptr2->second;
+                gtpv1uCreateAndSendMsg(compatInst(temp_instance),
+                                   tmp.outgoing_ip_addr,
+                                   tmp.outgoing_port,
+                                   GTP_GPDU,
+                                   tmp.teid_outgoing,
+                                   packet,
+                                   length,
+                                   0,
+                                   0,
+                                   0,
+                                   0,
+                                   NO_MORE_EXT_HDRS, 
+                                   NULL, 
+                                   0);
+              }
+            }
+          }
+        }
       }
       else{
         if (buffer[59] == 0x44 && buffer[61] == 0x43){ //DHCP & Tunnel Info to IND-Box
@@ -999,18 +999,18 @@ static void gtpv1uSend(instance_t instance, gtpv1u_tunnel_data_req_t *req, bool 
             UE_CPE[temp][1] = 1;
             //printf("ue_id: %u\n", ue_id);
           }
-          // uint32_t ip_addr = ip_hdr_gre->saddr;
-          // struct ether_header *eth_hdr = (struct ether_header *)(buffer + sizeof(struct iphdr) + sizeof(struct gre_header));
+          uint32_t ip_addr = ip_hdr_gre->saddr;
+          struct ether_header *eth_hdr = (struct ether_header *)(buffer + sizeof(struct iphdr) + sizeof(struct gre_header));
 
-          // device_table_insert(eth_hdr->ether_shost, ip_addr, ip_addr);
-          // buffer += (sizeof(struct iphdr) + sizeof(struct gre_header));
-          // length -= (sizeof(struct iphdr) + sizeof(struct gre_header));
+          device_table_insert(eth_hdr->ether_shost, ip_addr, ip_addr);
+          buffer += (sizeof(struct iphdr) + sizeof(struct gre_header));
+          length -= (sizeof(struct iphdr) + sizeof(struct gre_header));
 
-          // if (sendto(rawsockfd, buffer, length, 0, (struct sockaddr*)&sll, sizeof(sll)) == -1) {
-          //   perror("sendto");
-          //   close(rawsockfd);
-          //   exit(EXIT_FAILURE);
-          // }
+          if (sendto(rawsockfd, buffer, length, 0, (struct sockaddr*)&sll, sizeof(sll)) == -1) {
+            perror("sendto");
+            close(rawsockfd);
+            exit(EXIT_FAILURE);
+          }
 
           
 
@@ -1023,24 +1023,24 @@ static void gtpv1uSend(instance_t instance, gtpv1u_tunnel_data_req_t *req, bool 
           //
           //
           //////////////////////////////////////////////////
-          unsigned char packet[1024];
-          memset(packet, 0, 1024);
+          // unsigned char packet[1024];
+          // memset(packet, 0, 1024);
 
-          // Ethernet header
-          struct ether_header *eth_header = (struct ether_header *)packet;
-          memcpy(eth_header->ether_dhost, DST_MAC, ETH_ALEN);
-          memcpy(eth_header->ether_shost, SRC_MAC, ETH_ALEN);
-          eth_header->ether_type = htons(ETH_P_IP);
+          // // Ethernet header
+          // struct ether_header *eth_header = (struct ether_header *)packet;
+          // memcpy(eth_header->ether_dhost, DST_MAC, ETH_ALEN);
+          // memcpy(eth_header->ether_shost, SRC_MAC, ETH_ALEN);
+          // eth_header->ether_type = htons(ETH_P_IP);
 
-          memcpy(packet + sizeof(struct ether_header), buffer, length);
+          // memcpy(packet + sizeof(struct ether_header), buffer, length);
 
-          int packet_len = sizeof(struct ether_header) + length;
+          // int packet_len = sizeof(struct ether_header) + length;
 
-          if (sendto(rawsockfd, packet, packet_len, 0, (struct sockaddr*)&sll, sizeof(sll)) == -1) {
-            perror("sendto");
-            close(rawsockfd);
-            exit(EXIT_FAILURE);
-          }
+          // if (sendto(rawsockfd, packet, packet_len, 0, (struct sockaddr*)&sll, sizeof(sll)) == -1) {
+          //   perror("sendto");
+          //   close(rawsockfd);
+          //   exit(EXIT_FAILURE);
+          // }
         }
         else if(buffer[60] == 0xd9 && buffer[61] == 0x03){
           printf("tunnel update\n");
@@ -1051,82 +1051,82 @@ static void gtpv1uSend(instance_t instance, gtpv1u_tunnel_data_req_t *req, bool 
           //
           //
           //////////////////////////////////////////////////
-          // struct device_table_entry *entry;
-          // struct ip *ip_hdr_gre = (struct ip*)(buffer);
-          // uint32_t ip_addr = ip_hdr_gre->ip_src.s_addr;
-          // struct ether_header *eth_hdr = (struct ether_header *)(buffer + sizeof(struct ip) + sizeof(struct gre_header));
-          // // uint32_t hash = hash_mac(eth_hdr->ether_shost);
+          struct device_table_entry *entry;
+          struct ip *ip_hdr_gre = (struct ip*)(buffer);
+          uint32_t ip_addr = ip_hdr_gre->ip_src.s_addr;
+          struct ether_header *eth_hdr = (struct ether_header *)(buffer + sizeof(struct ip) + sizeof(struct gre_header));
+          // uint32_t hash = hash_mac(eth_hdr->ether_shost);
 
-          // // entry = device_table_get_entry_by_ul_mac(hash);
-          // device_table_insert(eth_hdr->ether_shost, ip_addr, 0);
-          // uint32_t dst = ip_hdr_gre->ip_dst.s_addr;
-          // ip_hdr_gre->ip_dst.s_addr = ip_addr;
-          // ip_hdr_gre->ip_src.s_addr = dst;
-          // memcpy(eth_hdr->ether_dhost, eth_hdr->ether_shost, ETH_ALEN);
-          // memcpy(eth_hdr->ether_shost, SRC_MAC, ETH_ALEN);
-          // struct ip *ip_hdr = (struct ip *)(buffer + sizeof(struct ip) + sizeof(struct gre_header) + sizeof(struct ether_header));
-          // ip_hdr->ip_dst.s_addr = ip_addr;
-          // ip_hdr->ip_src.s_addr = dst;
-          // struct udphdr *udp_hdr = (struct udphdr *)(buffer + sizeof(struct ip) + sizeof(struct gre_header) + sizeof(struct ether_header) + sizeof(struct ip));
-          // udp_hdr->dest = udp_hdr->source;
-          // udp_hdr->source = htons(55555);
-          // uint32_t temp3 = ip_addr % 1000000;
-          // length += 3;
-          //   // size_t prepend_length = sizeof(pdcp[temp3]);
-          //   // memmove(packet + prepend_length, packet, length);
-          //   // memcpy(packet, pdcp[temp3], prepend_length);
-          //   // pdcp[temp3][2]++;
-          //   // if (pdcp[temp3][2] == 0xff) {
-          //   //   pdcp[temp3][1]++;
-          //   // }
+          // entry = device_table_get_entry_by_ul_mac(hash);
+          device_table_insert(eth_hdr->ether_shost, ip_addr, 0);
+          uint32_t dst = ip_hdr_gre->ip_dst.s_addr;
+          ip_hdr_gre->ip_dst.s_addr = ip_addr;
+          ip_hdr_gre->ip_src.s_addr = dst;
+          memcpy(eth_hdr->ether_dhost, eth_hdr->ether_shost, ETH_ALEN);
+          memcpy(eth_hdr->ether_shost, SRC_MAC, ETH_ALEN);
+          struct ip *ip_hdr = (struct ip *)(buffer + sizeof(struct ip) + sizeof(struct gre_header) + sizeof(struct ether_header));
+          ip_hdr->ip_dst.s_addr = ip_addr;
+          ip_hdr->ip_src.s_addr = dst;
+          struct udphdr *udp_hdr = (struct udphdr *)(buffer + sizeof(struct ip) + sizeof(struct gre_header) + sizeof(struct ether_header) + sizeof(struct ip));
+          udp_hdr->dest = udp_hdr->source;
+          udp_hdr->source = htons(55555);
+          uint32_t temp3 = ip_addr % 1000000;
+          length += 3;
+            // size_t prepend_length = sizeof(pdcp[temp3]);
+            // memmove(packet + prepend_length, packet, length);
+            // memcpy(packet, pdcp[temp3], prepend_length);
+            // pdcp[temp3][2]++;
+            // if (pdcp[temp3][2] == 0xff) {
+            //   pdcp[temp3][1]++;
+            // }
          
-          // auto instChk=globGtp.instances.find(compatInst(compatInst(temp_instance)));
-          // if (instChk == globGtp.instances.end()) {                        
-          //   LOG_E(GTPU,"try to get a gtp-u not existing output\n");     
-          //   pthread_mutex_unlock(&globGtp.gtp_lock);                                                         
-          // }
-          // else{
-          //   if (&instChk->second){
-          //     gtpEndPoint * inst=&instChk->second;
-          //     auto ptrUe=inst->ue2te_mapping.find(UE_CPE[temp3][0]);                                                                    
-          //     if ( ptrUe==inst->ue2te_mapping.end() ) {                          
-          //       pthread_mutex_unlock(&globGtp.gtp_lock);                                                                                
-          //     }
-          //     auto ptr2=ptrUe->second.bearers.find(1); //bearer_id
-          //     uint8_t pdcp[3] = {0x80, 0x00, 0x00};
-          //     pdcp[2] += ptr2->second.seqNum;
-          //     if (pdcp[2] < ptr2->second.seqNum) {
-          //       pdcp[1]++;
-          //     }
-          //     size_t prepend_length = sizeof(pdcp);
-          //     memmove(buffer + prepend_length, buffer, length);
-          //     memcpy(buffer, pdcp, prepend_length);
+          auto instChk=globGtp.instances.find(compatInst(compatInst(temp_instance)));
+          if (instChk == globGtp.instances.end()) {                        
+            LOG_E(GTPU,"try to get a gtp-u not existing output\n");     
+            pthread_mutex_unlock(&globGtp.gtp_lock);                                                         
+          }
+          else{
+            if (&instChk->second){
+              gtpEndPoint * inst=&instChk->second;
+              auto ptrUe=inst->ue2te_mapping.find(UE_CPE[temp3][0]);                                                                    
+              if ( ptrUe==inst->ue2te_mapping.end() ) {                          
+                pthread_mutex_unlock(&globGtp.gtp_lock);                                                                                
+              }
+              auto ptr2=ptrUe->second.bearers.find(1); //bearer_id
+              uint8_t pdcp[3] = {0x80, 0x00, 0x00};
+              pdcp[2] += ptr2->second.seqNum;
+              if (pdcp[2] < ptr2->second.seqNum) {
+                pdcp[1]++;
+              }
+              size_t prepend_length = sizeof(pdcp);
+              memmove(buffer + prepend_length, buffer, length);
+              memcpy(buffer, pdcp, prepend_length);
 
-          //     ptr2->second.seqNum++;
-          //       // pdcp[temp3][2]++;
-          //       // if (pdcp[temp3][2] == 0xff) {
-          //       //   pdcp[temp3][1]++;
-          //       // }
-          //     ptr2->second.npduNum++;
-          //       //printf("M2M SN downlink: %hu\n", ptr2->second.seqNum);
-          //     tmp=ptr2->second;
-          //     gtpv1uCreateAndSendMsg(compatInst(temp_instance),
-          //                          tmp.outgoing_ip_addr,
-          //                          tmp.outgoing_port,
-          //                          GTP_GPDU,
-          //                          tmp.teid_outgoing,
-          //                          buffer,
-          //                          length,
-          //                          0,
-          //                          0,
-          //                          0,
-          //                          0,
-          //                          NO_MORE_EXT_HDRS, 
-          //                          NULL, 
-          //                          0);
-          //   }
-          //       //printf("finish\n");
-          // }
+              ptr2->second.seqNum++;
+                // pdcp[temp3][2]++;
+                // if (pdcp[temp3][2] == 0xff) {
+                //   pdcp[temp3][1]++;
+                // }
+              ptr2->second.npduNum++;
+                //printf("M2M SN downlink: %hu\n", ptr2->second.seqNum);
+              tmp=ptr2->second;
+              gtpv1uCreateAndSendMsg(compatInst(temp_instance),
+                                   tmp.outgoing_ip_addr,
+                                   tmp.outgoing_port,
+                                   GTP_GPDU,
+                                   tmp.teid_outgoing,
+                                   buffer,
+                                   length,
+                                   0,
+                                   0,
+                                   0,
+                                   0,
+                                   NO_MORE_EXT_HDRS, 
+                                   NULL, 
+                                   0);
+            }
+                //printf("finish\n");
+          }
 
            //////////////////////////////////////////////////
           //
@@ -1135,24 +1135,24 @@ static void gtpv1uSend(instance_t instance, gtpv1u_tunnel_data_req_t *req, bool 
           //
           //
           //////////////////////////////////////////////////
-          unsigned char packet[1024];
-          memset(packet, 0, 1024);
+          // unsigned char packet[1024];
+          // memset(packet, 0, 1024);
 
-          // Ethernet header
-          struct ether_header *eth_header = (struct ether_header *)packet;
-          memcpy(eth_header->ether_dhost, DST_MAC, ETH_ALEN);
-          memcpy(eth_header->ether_shost, SRC_MAC, ETH_ALEN);
-          eth_header->ether_type = htons(ETH_P_IP);
+          // // Ethernet header
+          // struct ether_header *eth_header = (struct ether_header *)packet;
+          // memcpy(eth_header->ether_dhost, DST_MAC, ETH_ALEN);
+          // memcpy(eth_header->ether_shost, SRC_MAC, ETH_ALEN);
+          // eth_header->ether_type = htons(ETH_P_IP);
 
-          memcpy(packet + sizeof(struct ether_header), buffer, length);
+          // memcpy(packet + sizeof(struct ether_header), buffer, length);
 
-          int packet_len = sizeof(struct ether_header) + length;
+          // int packet_len = sizeof(struct ether_header) + length;
 
-          if (sendto(rawsockfd, packet, packet_len, 0, (struct sockaddr*)&sll, sizeof(sll)) == -1) {
-            perror("sendto");
-            close(rawsockfd);
-            exit(EXIT_FAILURE);
-          }
+          // if (sendto(rawsockfd, packet, packet_len, 0, (struct sockaddr*)&sll, sizeof(sll)) == -1) {
+          //   perror("sendto");
+          //   close(rawsockfd);
+          //   exit(EXIT_FAILURE);
+          // }
         }
         else{ //Any traffic to IND-Box
           buffer += (sizeof(struct iphdr) + sizeof(struct gre_header));
@@ -1754,88 +1754,88 @@ void *loop1(void *arg) {
         //                  Author: York
         //
         //////////////////////////////////////////////////
-        // else if (ntohs(udp_hdr->dest) == 68){ //DHCP Ack
-        //   //printf("DHCP Ack\n");
-        //   struct device_table_entry *entry;
-        //   struct ether_header *eth_hdr = (struct ether_header *)buffer;
-        //   struct iphdr *ip_hdr = (struct iphdr *)(buffer + sizeof(struct ether_header));
-        //   uint32_t hash = hash_mac(eth_hdr->ether_dhost);
+        else if (ntohs(udp_hdr->dest) == 68){ //DHCP Ack
+          //printf("DHCP Ack\n");
+          struct device_table_entry *entry;
+          struct ether_header *eth_hdr = (struct ether_header *)buffer;
+          struct iphdr *ip_hdr = (struct iphdr *)(buffer + sizeof(struct ether_header));
+          uint32_t hash = hash_mac(eth_hdr->ether_dhost);
         
-        //   entry = device_table_get_entry_by_ul_mac(hash);
-        //   if (entry == 0){
-        //     printf("device info not found\n");
-        //   }
-        //   else{
-        //     device_table_insert(eth_hdr->ether_dhost, entry->cpe_ip, ip_hdr->daddr);
-        //     device_arp_table_insert(eth_hdr->ether_dhost, ip_hdr->daddr, time(NULL));
+          entry = device_table_get_entry_by_ul_mac(hash);
+          if (entry == 0){
+            printf("device info not found\n");
+          }
+          else{
+            device_table_insert(eth_hdr->ether_dhost, entry->cpe_ip, ip_hdr->daddr);
+            device_arp_table_insert(eth_hdr->ether_dhost, ip_hdr->daddr, time(NULL));
 
-        //     unsigned char packet[1024];
-        //     memset(packet, 0, 1024);
+            unsigned char packet[1024];
+            memset(packet, 0, 1024);
 
-        //     struct iphdr *ip_hdr_gre = (struct iphdr *)packet;
-        //     ip_hdr_gre->check = 0;
-        //     ip_hdr_gre->ihl = 5;
-        //     ip_hdr_gre->version = 4;
-        //     ip_hdr_gre->tos = 0;
-        //     ip_hdr_gre->tot_len = htons(len + sizeof(struct iphdr) + sizeof(struct gre_header));
-        //     ip_hdr_gre->id = htons(12345);
-        //     ip_hdr_gre->saddr = inet_addr(SRC_IP);;
-        //     ip_hdr_gre->daddr = entry->cpe_ip;
-        //     ip_hdr_gre->frag_off = 0;
-        //     ip_hdr_gre->ttl = 255;
-        //     ip_hdr_gre->protocol = IPPROTO_GRE;
-        //     ip_hdr_gre->check = checksum5((unsigned short *)ip_hdr_gre, sizeof(struct iphdr) / 2);
+            struct iphdr *ip_hdr_gre = (struct iphdr *)packet;
+            ip_hdr_gre->check = 0;
+            ip_hdr_gre->ihl = 5;
+            ip_hdr_gre->version = 4;
+            ip_hdr_gre->tos = 0;
+            ip_hdr_gre->tot_len = htons(len + sizeof(struct iphdr) + sizeof(struct gre_header));
+            ip_hdr_gre->id = htons(12345);
+            ip_hdr_gre->saddr = inet_addr(SRC_IP);;
+            ip_hdr_gre->daddr = entry->cpe_ip;
+            ip_hdr_gre->frag_off = 0;
+            ip_hdr_gre->ttl = 255;
+            ip_hdr_gre->protocol = IPPROTO_GRE;
+            ip_hdr_gre->check = checksum5((unsigned short *)ip_hdr_gre, sizeof(struct iphdr) / 2);
             
-        //     struct gre_header *gre_hdr = (struct gre_header *)(packet + sizeof(struct iphdr));
-        //     //gre_hdr->flags = 0;
-        //     gre_hdr->proto = htons(0x6558);
+            struct gre_header *gre_hdr = (struct gre_header *)(packet + sizeof(struct iphdr));
+            //gre_hdr->flags = 0;
+            gre_hdr->proto = htons(0x6558);
 
-        //     memcpy(packet + sizeof(struct iphdr) + sizeof(struct gre_header), buffer, len); // ¢X2?dhcp_packetcMdhcp_packet_length?wcw?
+            memcpy(packet + sizeof(struct iphdr) + sizeof(struct gre_header), buffer, len); // ¢X2?dhcp_packetcMdhcp_packet_length?wcw?
 
-        //     int length = sizeof(struct iphdr) + sizeof(struct gre_header) + len;
+            int length = sizeof(struct iphdr) + sizeof(struct gre_header) + len;
 
-        //     uint32_t temp3 = entry->cpe_ip % 1000000;
-        //     length += 3;
-        //     size_t prepend_length = sizeof(pdcp[temp3]);
-        //     memmove(packet + prepend_length, packet, length);
-        //     memcpy(packet, pdcp[temp3], prepend_length);
-        //     pdcp[temp3][2]++;
-        //     if (pdcp[temp3][2] == 0xff) {
-        //       pdcp[temp3][1]++;
-        //     }
+            uint32_t temp3 = entry->cpe_ip % 1000000;
+            length += 3;
+            size_t prepend_length = sizeof(pdcp[temp3]);
+            memmove(packet + prepend_length, packet, length);
+            memcpy(packet, pdcp[temp3], prepend_length);
+            pdcp[temp3][2]++;
+            if (pdcp[temp3][2] == 0xff) {
+              pdcp[temp3][1]++;
+            }
      
-        //     auto instChk=globGtp.instances.find(compatInst(compatInst(temp_instance)));
-        //     if (instChk == globGtp.instances.end()) {                        
-        //       LOG_E(GTPU,"try to get a gtp-u not existing output\n");     
-        //       pthread_mutex_unlock(&globGtp.gtp_lock);                                                         
-        //     }
-        //     else{
-        //       if (&instChk->second){
-        //         gtpEndPoint * inst=&instChk->second;
-        //         auto ptrUe=inst->ue2te_mapping.find(UE_CPE[temp3][0]);                                                                    
-        //         if ( ptrUe==inst->ue2te_mapping.end() ) {                          
-        //           pthread_mutex_unlock(&globGtp.gtp_lock);                                                                                
-        //         }
-        //         auto ptr2=ptrUe->second.bearers.find(1); //bearer_id
-        //         gtpv1u_bearer_t tmp=ptr2->second;
-        //         gtpv1uCreateAndSendMsg(compatInst(temp_instance),
-        //                              tmp.outgoing_ip_addr,
-        //                              tmp.outgoing_port,
-        //                              GTP_GPDU,
-        //                              tmp.teid_outgoing,
-        //                              packet,
-        //                              length, 
-        //                              0,
-        //                              0, 
-        //                              0, 
-        //                              0, 
-        //                              NO_MORE_EXT_HDRS, 
-        //                              NULL, 
-        //                              0);
-        //       }
-        //     }
-        //   }
-        // }
+            auto instChk=globGtp.instances.find(compatInst(compatInst(temp_instance)));
+            if (instChk == globGtp.instances.end()) {                        
+              LOG_E(GTPU,"try to get a gtp-u not existing output\n");     
+              pthread_mutex_unlock(&globGtp.gtp_lock);                                                         
+            }
+            else{
+              if (&instChk->second){
+                gtpEndPoint * inst=&instChk->second;
+                auto ptrUe=inst->ue2te_mapping.find(UE_CPE[temp3][0]);                                                                    
+                if ( ptrUe==inst->ue2te_mapping.end() ) {                          
+                  pthread_mutex_unlock(&globGtp.gtp_lock);                                                                                
+                }
+                auto ptr2=ptrUe->second.bearers.find(1); //bearer_id
+                gtpv1u_bearer_t tmp=ptr2->second;
+                gtpv1uCreateAndSendMsg(compatInst(temp_instance),
+                                     tmp.outgoing_ip_addr,
+                                     tmp.outgoing_port,
+                                     GTP_GPDU,
+                                     tmp.teid_outgoing,
+                                     packet,
+                                     length, 
+                                     0,
+                                     0, 
+                                     0, 
+                                     0, 
+                                     NO_MORE_EXT_HDRS, 
+                                     NULL, 
+                                     0);
+              }
+            }
+          }
+        }
         else{
           struct device_table_entry *entry;
           struct ether_header *eth_hdr = (struct ether_header *)buffer;
