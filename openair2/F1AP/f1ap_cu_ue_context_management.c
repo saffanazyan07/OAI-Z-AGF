@@ -42,6 +42,12 @@
 #include <openair3/ocp-gtpu/gtp_itf.h>
 #include "LAYER2/nr_pdcp/nr_pdcp_oai_api.h"
 
+extern uint32_t UE_IP;
+#define UE_HASH_TABLE_SIZE  1 << 24
+ue_id_t UE_CPE[UE_HASH_TABLE_SIZE][2] = {0};
+// uint32_t CPE_IP[1000] = {0};
+// uint32_t CPE_length = 0;
+
 static void setQos(F1AP_NonDynamic5QIDescriptor_t *toFill) {
   asn1cCalloc(toFill, tmp);
   /* fiveQI */
@@ -84,7 +90,7 @@ int CU_send_UE_CONTEXT_SETUP_REQUEST(instance_t instance,
   ie1->criticality                    = F1AP_Criticality_reject;
   ie1->value.present                  = F1AP_UEContextSetupRequestIEs__value_PR_GNB_CU_UE_F1AP_ID;
   ie1->value.choice.GNB_CU_UE_F1AP_ID = f1ap_get_cu_ue_f1ap_id(CUtype, instance, f1ap_ue_context_setup_req->rnti); //f1ap_ue_context_setup_req->gNB_CU_ue_id;
-
+  printf("ue_id: %u\n", f1ap_ue_context_setup_req->rnti);
   /* optional */
   /* c2. GNB_DU_UE_F1AP_ID */
   if (f1ap_ue_context_setup_req->gNB_DU_ue_id) {
@@ -633,6 +639,7 @@ int CU_send_UE_CONTEXT_SETUP_REQUEST(instance_t instance,
   return 0;
 }
 
+//extern UE_IP;
 int CU_handle_UE_CONTEXT_SETUP_RESPONSE(instance_t       instance,
                                         uint32_t         assoc_id,
                                         uint32_t         stream,
@@ -657,6 +664,7 @@ int CU_handle_UE_CONTEXT_SETUP_RESPONSE(instance_t       instance,
   LOG_D(F1AP, "f1ap_ue_context_setup_resp->gNB_DU_ue_id is: %d \n", f1ap_ue_context_setup_resp->gNB_DU_ue_id);
   f1ap_ue_context_setup_resp->rnti =
     f1ap_get_rnti_by_du_id(CUtype, instance, f1ap_ue_context_setup_resp->gNB_DU_ue_id);
+  //printf("ue_id: %u\n", f1ap_ue_context_setup_resp->rnti);
   // DUtoCURRCInformation
   F1AP_FIND_PROTOCOLIE_BY_ID(F1AP_UEContextSetupResponseIEs_t, ie, container,
                              F1AP_ProtocolIE_ID_id_DUtoCURRCInformation, true);
@@ -987,6 +995,15 @@ int CU_send_UE_CONTEXT_MODIFICATION_REQUEST(instance_t instance, f1ap_ue_context
   ie1->criticality                    = F1AP_Criticality_reject;
   ie1->value.present                  = F1AP_UEContextModificationRequestIEs__value_PR_GNB_CU_UE_F1AP_ID;
   ie1->value.choice.GNB_CU_UE_F1AP_ID = f1ap_get_cu_ue_f1ap_id(CUtype, instance, f1ap_ue_context_modification_req->rnti);;
+  printf("CU_context: %u\n", f1ap_ue_context_modification_req->rnti);
+  UE_CPE[UE_IP % 1000000][0] = f1ap_ue_context_modification_req->rnti;
+  // if (!UE_CPE[UE_IP % 1000000]){
+  //   printf("UE IP add: %u\n", UE_IP);
+  //   CPE_IP[CPE_length] = UE_IP;
+  //   CPE_length++;
+    
+  //   printf("ue_id: %u\n", f1ap_ue_context_modification_req->rnti);
+  // }
   /* mandatory */
   /* c2. GNB_DU_UE_F1AP_ID */
   asn1cSequenceAdd(out->protocolIEs.list, F1AP_UEContextModificationRequestIEs_t, ie2);

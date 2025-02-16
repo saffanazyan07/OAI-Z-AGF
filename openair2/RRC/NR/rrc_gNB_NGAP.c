@@ -391,6 +391,7 @@ int rrc_gNB_process_NGAP_INITIAL_CONTEXT_SETUP_REQ(MessageDef *msg_p, instance_t
       LOG_I(NR_RRC, "PDUSESSION SETUP: local index %d teid %u, pdusession id %d \n", i, create_tunnel_req.outgoing_teid[i], create_tunnel_req.pdusession_id[i]);
     }
     create_tunnel_req.ue_id = UE->rnti;
+    //printf("rnti: %u\n", UE->rnti);
     gtpv1u_gnb_create_tunnel_resp_t create_tunnel_resp = {0};
     int ret = gtpv1u_create_ngu_tunnel(instance, &create_tunnel_req, &create_tunnel_resp, nr_pdcp_data_req_drb, sdap_data_req);
     if (ret != 0) {
@@ -764,6 +765,7 @@ void rrc_gNB_process_NGAP_PDUSESSION_SETUP_REQ(MessageDef *msg_p, instance_t ins
     decodePDUSessionResourceSetup(session);
     bearer_req.gNB_cu_cp_ue_id = msg->gNB_ue_ngap_id;
     bearer_req.rnti = UE->rnti;
+    printf("rnti: %u\n", UE->rnti);
     bearer_req.cipheringAlgorithm = UE->ciphering_algorithm;
     memcpy(bearer_req.encryptionKey, UE->kgnb, sizeof(UE->kgnb));
     bearer_req.integrityProtectionAlgorithm = UE->integrity_algorithm;

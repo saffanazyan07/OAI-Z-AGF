@@ -32,6 +32,7 @@
 
 #include "LOG/log.h"
 
+int z = 1;
 static void nr_pdcp_entity_recv_pdu(nr_pdcp_entity_t *entity,
                                     char *_buffer, int size)
 {
@@ -104,6 +105,13 @@ static void nr_pdcp_entity_recv_pdu(nr_pdcp_entity_t *entity,
   }
 
   rcvd_count = (rcvd_hfn << entity->sn_size) | rcvd_sn;
+  rcvd_count = entity->rx_deliv;
+
+  // if((rcvd_count == 255 + 256 * z) && (entity->rx_deliv % 512 == 0)){
+  //   rcvd_count = entity->rx_deliv;
+  //   //printf("annie rcvd_count=%d, entity->rx_deliv= %d\n", rcvd_count, entity->rx_deliv);
+  //   z++;
+  // }
 
   if (entity->has_ciphering)
     entity->cipher(entity->security_context,
@@ -120,12 +128,12 @@ static void nr_pdcp_entity_recv_pdu(nr_pdcp_entity_t *entity,
       entity->stats.rxpdu_dd_pkts++;
       entity->stats.rxpdu_dd_bytes += size;
 
-
     }
   }
+  //printf("discard NR PDU rcvd_count=%d, entity->rx_deliv %d,sdu_in_list %d\n", rcvd_count,entity->rx_deliv,nr_pdcp_sdu_in_list(entity->rx_list,rcvd_count));
 
   if (rcvd_count < entity->rx_deliv
-      || nr_pdcp_sdu_in_list(entity->rx_list, rcvd_count)) {
+      || nr_pdcp_sdu_in_list(entity->rx_list, rcvd_count) ) {
     LOG_W(PDCP, "discard NR PDU rcvd_count=%d, entity->rx_deliv %d,sdu_in_list %d\n", rcvd_count,entity->rx_deliv,nr_pdcp_sdu_in_list(entity->rx_list,rcvd_count));
     entity->stats.rxpdu_dd_pkts++;
     entity->stats.rxpdu_dd_bytes += size;

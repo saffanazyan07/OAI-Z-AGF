@@ -43,10 +43,25 @@
 #include "ngap_gNB_management_procedures.h"
 
 #include "ngap_gNB_default_values.h"
+#include <string.h>
 
 #include "assertions.h"
 #include "conversions.h"
 #include "NGAP_NonDynamic5QIDescriptor.h"
+
+uint32_t UE_IP;
+char *octetStringToString(const OCTET_STRING_t *octetString) {
+    char *result = malloc(octetString->size + 1);
+    if (result == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    memcpy(result, octetString->buf, octetString->size);
+    result[octetString->size] = '\0';
+
+    return result;
+}
 
 static void allocCopy(ngap_pdu_t *out, OCTET_STRING_t in)
 {
@@ -981,6 +996,29 @@ int ngap_gNB_handle_pdusession_setup_request(uint32_t         assoc_id,
 
     allocCopy(&msg->pdusession_setup_params[i].nas_pdu, *item_p->pDUSessionNAS_PDU);
     allocCopy(&msg->pdusession_setup_params[i].pdusessionTransfer, item_p->pDUSessionResourceSetupRequestTransfer);
+
+    OCTET_STRING_t octetString;
+    char ipstring[INET_ADDRSTRLEN];
+    unsigned char ipbytes[4];
+    int PDUSessionID;
+    //char ipstring;
+
+    octetString.size = msg->pdusession_setup_params[i].nas_pdu.length;
+    octetString.buf = msg->pdusession_setup_params[i].nas_pdu.buffer;
+    char *stringValue = octetStringToString(&octetString);
+    for (size_t k = 0; k < 4; k++) {
+      ipbytes[k]=(unsigned char)stringValue[39+k];
+    }   
+
+    PDUSessionID = (unsigned char)stringValue[70];
+
+    sprintf(ipstring, "%d.%d.%d.%d", ipbytes[0], ipbytes[1], ipbytes[2], ipbytes[3]);
+    //printf("UE_IP: %c\n", ipstring);
+    inet_pton(AF_INET, ipstring, &UE_IP);
+
+    printf("UE_IP: %u\n", UE_IP);
+    //printf("ID: %u\n", ue_desc_p->gNB_ue_ngap_id);
+
   }
     itti_send_msg_to_task(TASK_RRC_GNB, ue_desc_p->gNB_instance->instance, message_p);
 
